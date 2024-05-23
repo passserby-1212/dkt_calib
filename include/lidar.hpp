@@ -12,6 +12,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/filters/project_inliers.h>
 
+#include <pcl/registration/icp.h>
 
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
@@ -27,6 +28,13 @@ public:
     std::map<int, cv::Point3f> group_pcd_keypoint(const std::string &pcd_path, const std::string &target_position);
 
     std::map<int, cv::Point3f> get_target_position(const std::string &target_position);
+
+    void cv2pcl(const std::vector<cv::Point3f> &cv_pt, pcl::PointCloud<pcl::PointXYZ>::Ptr &pcl_pt);
+
+    void pcl2cv(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pcl_pt, std::vector<cv::Point3f> &cv_pt);
+
+    Eigen::Matrix4f coordinates_fit(const pcl::PointCloud<pcl::PointXYZ>::Ptr &src,
+                                    const pcl::PointCloud<pcl::PointXYZ>::Ptr &tgt);
 
 };
 

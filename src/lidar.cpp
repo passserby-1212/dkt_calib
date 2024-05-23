@@ -52,15 +52,32 @@ std::map<int, cv::Point3f> lidar::group_pcd_keypoint(const std::string &pcd_path
 
     //获取标靶中心点
     std::vector<cv::Point3f> obj_points = cluster(group_f, frames);
+    
+    //标靶点云坐标和真值坐标进行匹配
+    pcl::PointCloud<pcl::PointXYZ>::Ptr acutal_position(new pcl::PointCloud<pcl::PointXYZ>);
+    cv2pcl(obj_points, acutal_position);
 
     int count = obj_points.size();
     std::map<int, cv::Point3f> truth_points = get_target_position(target_position);
-    std::map<int, cv::Point3f> actual_points;
 
+    std::vector<cv::Point3f> tgt_position;
+    for(const auto& pair : truth_points){
+        tgt_position.push_back(truth_points[pair.first]);
+    }
+    pcl::PointCloud<pcl::PointXYZ>::Ptr truth_position(new pcl::PointCloud<pcl::PointXYZ>);
+    cv2pcl(tgt_position, truth_position);
+
+    Eigen::Matrix4f trans = coordinates_fit(acutal_position, truth_position);
+
+    std::map<int, cv::Point3f> actual_points;
     for(const auto& pair : truth_points) {
         float bias = 100.0f;
         for(const auto pt: obj_points){
-            cv::Point3f diff = pair.second - pt;
+            Eigen::Vector4f point(pt.x, pt.y, pt.z ,1.0f);
+            Eigen::Vector4f point_t = trans * point;
+
+            cv::Point3f point_res(point_t.x()/point_t.w(),point_t.y()/point_t.w(),point_t.z()/point_t.w());
+            cv::Point3f diff = pair.second - point_res;
             if(cv::norm(diff) < bias){
                 actual_points[pair.first] = pt;
                 bias = cv::norm(diff);
@@ -312,4 +329,48 @@ cv::Point3f get_center(const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud){
   
   return point_c;
   
+}
+
+void lidar::cv2pcl(const std::vector<cv::Point3f> &cv_pt, 
+                         pcl::PointCloud<pcl::PointXYZ>::Ptr &pcl_pt){
+    for (const auto& point : cv_pt)
+    {
+        pcl::PointXYZ pclPoint;
+        pclPoint.x = point.x;
+        pclPoint.y = point.y;
+        pclPoint.z = point.z;
+        pcl_pt->push_back(pclPoint);
+    }
+
+}
+
+void lidar::pcl2cv(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pcl_pt, 
+                                    std::vector<cv::Point3f> &cv_pt){
+    for (const auto& point : pcl_pt->points)
+    {
+        cv::Point3f cvPoint(point.x, point.y, point.z);
+        cv_pt.push_back(cvPoint);
+    }
+
+}
+
+Eigen::Matrix4f lidar::coordinates_fit(const pcl::PointCloud<pcl::PointXYZ>::Ptr &src,
+                                       const pcl::PointCloud<pcl::PointXYZ>::Ptr &tgt){
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr icp_result(new pcl::PointCloud<pcl::PointXYZ>);
+    icp.setInputSource(src);
+    icp.setInputTarget(tgt);
+   
+   //icp.setMaxCorrespondenceDistance (0.2);
+   icp.setMaximumIterations (50);
+   //icp.setTransformationEpsilon (1e-5);
+   //icp.setEuclideanFitnessEpsilon (0.2);
+
+   icp.align(*icp_result);
+
+   Eigen::Matrix4f icp_trans = icp.getFinalTransformation();
+   std::cout<<"icp_trans:\n"<<icp_trans<<std::endl;
+   return icp_trans;
+   
+
 }
