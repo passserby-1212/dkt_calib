@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/xutao/桌面/dkt/lib/libCalibration.a CMakeFiles/Calibration.dir/src/camera.cpp.o CMakeFiles/Calibration.dir/src/lidar.cpp.o CMakeFiles/Calibration.dir/src/registration.cpp.o CMakeFiles/Calibration.dir/src/run_group_extrinsic_calib.cpp.o CMakeFiles/Calibration.dir/src/run_intrinsic_calib.cpp.o CMakeFiles/Calibration.dir/src/run_lidars_calib.cpp.o CMakeFiles/Calibration.dir/src/run_single_extrinsic_calib.cpp.o
+/usr/bin/ranlib /home/xutao/桌面/dkt/lib/libCalibration.a
